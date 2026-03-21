@@ -1,9 +1,10 @@
 # MathCut Studio — Product Requirements Document
 
-**Version:** 1.3
-**Date:** 21 March 2026
+**Version:** 1.4
+**Date:** 22 March 2026
 **Author:** Nadia Ellis
 **Status:** Draft — Ready for Development
+**Changes in v1.4:** Phase 2 implementation updates. ×1 and ×10 tables auto-mastered and excluded from practice (Lincoln already knows these). Any fact involving ×1 or ×10 is also excluded from other tables (e.g., 5×1 and 5×10 are skipped in the ×5 table). This reduces practised facts from 144 to 100. "Surprise Me" table recommendation order updated to start from ×5. Mobile layout redesigned: answer display merged inline with question ("3 × 4 = ?"), keypad compacted, array gets maximum screen space. Desktop uses responsive two-column layout (array left, keypad right). Array icons scale dynamically based on grid dimensions. Design aesthetic: "more anime and emoji than slick" — playful, bouncy, expressive. Table selection uses movie poster cards with fun names (Double Feature, Fantastic Four, etc.) and emoji. Film strip progress indicator. Table intro screen on first encounter with strategy hints. Session summary uses positive framing only (Scenes Nailed / Scenes Shot, no scores or percentages).
 **Changes in v1.2:** Frontend design pass + interactive learning overhaul. Design: replaced generic UI spec with cinematic aesthetic direction (Golden Age Hollywood dark UI), distinctive typography (Bebas Neue + Atkinson Hyperlegible), expanded colour system with gradients/surfaces/spotlights, cinematic animation choreography, film grain/vignette atmosphere, component design language. Learning: arrays are now constructive/interactive (not decorative), added Discovery Pathway scaffolding system (6-level structured support when stuck), added derived fact strategies as core mechanic, visual aids now scale per-fact not per-mode, added "Build It" as primary interaction for new facts
 **Changes in v1.1:** Web-only (no native), OpenAI TTS, keypad as first-class input, no demotion on wrong answers, failure-sensitive design, no break reminders, no multi-profile, no lesson structure, separate repo
 
@@ -18,7 +19,7 @@ The app is built specifically for a child who is gifted in fluid reasoning and v
 **Target platform:** Web app (React + Vite), deployed on Netlify — no native/iOS builds
 **Target devices:** iPhone 11 (Safari mobile) + Lenovo Yoga 7 laptop (Chrome, touchscreen)
 **Target user:** Lincoln, age 11 (hard-coded single profile — no multi-user)
-**Scope:** Multiplication tables 1×1 through 12×12 (144 facts)
+**Scope:** Multiplication tables 2×2 through 12×12, excluding ×1 and ×10 facts (100 practised facts; ×1 and ×10 auto-mastered)
 **Repo:** Separate repository, scaffolded fresh
 
 ---
@@ -320,18 +321,18 @@ This is a first-class interaction, not a side feature. When a fact is new (Box 1
 
 | Order | Table | Primary strategy | Builds from |
 |---|---|---|---|
-| 1 | ×1 | Identity (auto-mastered) | — |
-| 2 | ×10 | Skip-counting by 10 | — |
-| 3 | ×5 | Halving ×10 | ×10 |
-| 4 | ×2 | Doubles (most children know from addition) | — |
-| 5 | ×4 | Double the ×2 | ×2 |
-| 6 | ×8 | Double the ×4 | ×4 |
-| 7 | ×3 | ×2 + one more group | ×2 |
-| 8 | ×6 | Double the ×3, or ×5 + one more group | ×3 or ×5 |
-| 9 | ×9 | ×10 − one group | ×10 |
-| 10 | ×7 | ×5 + ×2 (splitting), or ×8 − one group | ×5, ×2, ×8 |
-| 11 | ×11 | ×10 + one more group | ×10 |
-| 12 | ×12 | ×10 + ×2 (splitting) | ×10, ×2 |
+| — | ×1 | Identity (auto-mastered, excluded from practice) | — |
+| — | ×10 | Skip-counting by 10 (auto-mastered, excluded from practice) | — |
+| 1 | ×5 | Halving ×10 | ×10 |
+| 2 | ×2 | Doubles (most children know from addition) | — |
+| 3 | ×4 | Double the ×2 | ×2 |
+| 4 | ×8 | Double the ×4 | ×4 |
+| 5 | ×3 | ×2 + one more group | ×2 |
+| 6 | ×6 | Double the ×3, or ×5 + one more group | ×3 or ×5 |
+| 7 | ×9 | ×10 − one group | ×10 |
+| 8 | ×7 | ×5 + ×2 (splitting), or ×8 − one group | ×5, ×2, ×8 |
+| 9 | ×11 | ×10 + one more group | ×10 |
+| 10 | ×12 | ×10 + ×2 (splitting) | ×10, ×2 |
 
 **Note:** Lincoln can explore tables in any order — this is the *recommended* order shown in "Surprise Me" mode and used when auto-selecting the next table to introduce. If Lincoln picks a table out of order, the app still shows derivation strategies using whichever facts he already knows.
 
@@ -590,7 +591,7 @@ interface QuestionRecord {
 
 #### 5.4.1 Leitner Box Algorithm
 
-**Description:** A 5-box system tracks mastery of each individual multiplication fact (144 facts total: 1×1 through 12×12).
+**Description:** A 5-box system tracks mastery of each individual multiplication fact. 144 facts are stored (1×1 through 12×12), but facts involving ×1 or ×10 are auto-mastered and excluded from practice sessions (100 practised facts).
 
 **Box definitions:**
 
@@ -739,7 +740,8 @@ interface StreakData {
   - Progress bar showing percentage of facts at Box 3+
   - Visual poster art that evolves with progress
 - Tapping a movie card shows detail: which facts are mastered, which need work
-- 1× table is auto-completed (trivial) and shown as "Classic Film — already in the archives"
+- 1× and 10× tables are auto-completed (Lincoln already knows these) and shown as archived/mastered
+- Within all other tables, facts involving ×1 and ×10 are also excluded from practice (e.g., 5×1 and 5×10 are never asked)
 
 **Acceptance criteria:**
 

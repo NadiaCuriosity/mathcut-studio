@@ -60,4 +60,5 @@ export interface UserProgress {
   unlockedAwards: string[];
   settings: UserSettings;
   streak: StreakData;
+  tablesIntroduced: number[];
 }

@@ -51,7 +51,7 @@ export function Keypad({ value, onChange, onSubmit, disabled }: KeypadProps) {
   }, [handleKey, disabled]);
 
   return (
-    <div className="grid grid-cols-3 gap-2.5 sm:gap-3 w-full max-w-[320px] sm:max-w-[360px] md:max-w-[340px] mx-auto">
+    <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 w-full max-w-[260px] sm:max-w-[340px] md:max-w-[340px] mx-auto">
       {keys.flat().map((key) => {
         const isSubmit = key === "✓";
         const isBackspace = key === "⌫";
@@ -60,16 +60,16 @@ export function Keypad({ value, onChange, onSubmit, disabled }: KeypadProps) {
         return (
           <motion.button
             key={key}
-            whileTap={disabled ? undefined : { scale: 0.95, y: 2 }}
+            whileTap={disabled ? undefined : { scale: 0.95, y: 1 }}
             whileHover={
               disabled ? undefined : { borderColor: "rgba(230, 180, 34, 0.5)" }
             }
             onClick={() => handleKey(key)}
             disabled={disabled || isDisabledSubmit}
-            className="h-16 sm:h-[72px] md:h-[76px] rounded-xl select-none cursor-pointer disabled:opacity-30 disabled:cursor-default"
+            className="h-11 sm:h-14 md:h-[68px] rounded-lg sm:rounded-xl select-none cursor-pointer disabled:opacity-30 disabled:cursor-default"
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: isBackspace ? "24px" : "32px",
+              fontSize: isBackspace ? "18px" : "24px",
               fontWeight: isSubmit ? 700 : 500,
               background: isSubmit
                 ? "var(--colour-success)"
@@ -85,8 +85,8 @@ export function Keypad({ value, onChange, onSubmit, disabled }: KeypadProps) {
                   : "rgba(230, 180, 34, 0.15)"
               }`,
               boxShadow: isSubmit
-                ? "0 3px 0 rgba(0,0,0,0.3), 0 0 12px rgba(78, 205, 196, 0.1)"
-                : "0 3px 0 rgba(0,0,0,0.3)",
+                ? "0 2px 0 rgba(0,0,0,0.3), 0 0 12px rgba(78, 205, 196, 0.1)"
+                : "0 2px 0 rgba(0,0,0,0.3)",
               WebkitTapHighlightColor: "transparent",
               touchAction: "manipulation",
             }}

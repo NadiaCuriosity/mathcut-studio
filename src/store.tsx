@@ -10,16 +10,18 @@ import type { UserProgress, FactRecord } from "./types";
 const STORAGE_KEY = "mathcut-studio-data";
 
 function createInitialFact(a: number, b: number): FactRecord {
+  // Auto-complete any fact involving ×1 or ×10 (Lincoln already knows these)
+  const isAutoMastered = a === 1 || a === 10 || b === 1 || b === 10;
   return {
     a,
     b,
-    box: 1,
-    correctStreak: 0,
+    box: isAutoMastered ? 5 : 1,
+    correctStreak: isAutoMastered ? 5 : 0,
     recentMisses: 0,
-    totalAttempts: 0,
-    totalCorrect: 0,
-    lastAttempted: "",
-    lastCorrect: "",
+    totalAttempts: isAutoMastered ? 5 : 0,
+    totalCorrect: isAutoMastered ? 5 : 0,
+    lastAttempted: isAutoMastered ? new Date().toISOString() : "",
+    lastCorrect: isAutoMastered ? new Date().toISOString() : "",
     isFading: false,
   };
 }
@@ -51,13 +53,21 @@ function createInitialProgress(): UserProgress {
       longestStreak: 0,
       lastActiveDate: "",
     },
+    tablesIntroduced: [1, 10],
   };
 }
 
 function loadProgress(): UserProgress {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as UserProgress;
+    if (raw) {
+      const data = JSON.parse(raw) as UserProgress;
+      // Migration: add tablesIntroduced if missing
+      if (!data.tablesIntroduced) {
+        data.tablesIntroduced = [1];
+      }
+      return data;
+    }
   } catch {
     // corrupt data — start fresh
   }
@@ -72,7 +82,8 @@ function saveProgress(state: UserProgress) {
 
 type Action =
   | { type: "ANSWER_CORRECT"; a: number; b: number }
-  | { type: "ANSWER_INCORRECT"; a: number; b: number };
+  | { type: "ANSWER_INCORRECT"; a: number; b: number }
+  | { type: "INTRODUCE_TABLE"; table: number };
 
 function findFact(facts: FactRecord[], a: number, b: number) {
   return facts.findIndex((f) => f.a === a && f.b === b);
@@ -111,6 +122,13 @@ function reducer(state: UserProgress, action: Action): UserProgress {
       // NO demotion — fact stays in its current box
       facts[idx] = fact;
       return { ...state, facts };
+    }
+    case "INTRODUCE_TABLE": {
+      if (state.tablesIntroduced.includes(action.table)) return state;
+      return {
+        ...state,
+        tablesIntroduced: [...state.tablesIntroduced, action.table],
+      };
     }
     default:
       return state;
