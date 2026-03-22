@@ -13,8 +13,13 @@ export function SessionSummary({
   results,
   onBackToStudio,
 }: SessionSummaryProps) {
-  const nailed = results.filter((r) => r.correct).length;
-  const total = results.length;
+  const nailed = results.filter(
+    (r) => r.correct && !r.discoveryAssisted
+  ).length;
+  const directed = results.filter(
+    (r) => r.correct && r.discoveryAssisted
+  ).length;
+  const learned = results.filter((r) => !r.correct).length;
 
   useEffect(() => {
     speak("That's a wrap on today's shoot!");
@@ -52,18 +57,19 @@ export function SessionSummary({
         </h1>
       </motion.div>
 
-      {/* Stats */}
+      {/* Stats — three categories */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="flex gap-8 sm:gap-12 mb-6 relative z-10"
+        className="flex gap-6 sm:gap-10 mb-6 relative z-10 flex-wrap justify-center"
       >
+        {/* Scenes Nailed */}
         <div className="text-center">
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "clamp(32px, 8vw, 48px)",
+              fontSize: "clamp(28px, 7vw, 44px)",
               fontWeight: 700,
               color: "var(--colour-success)",
             }}
@@ -73,34 +79,63 @@ export function SessionSummary({
           <div
             style={{
               fontFamily: "var(--font-body)",
-              fontSize: "14px",
+              fontSize: "13px",
               color: "var(--colour-text-secondary)",
             }}
           >
-            Scenes Nailed ⭐
+            Scenes Nailed
           </div>
         </div>
-        <div className="text-center">
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "clamp(32px, 8vw, 48px)",
-              fontWeight: 700,
-              color: "var(--colour-text-primary)",
-            }}
-          >
-            {total}
+
+        {/* Scenes Directed — only show if any */}
+        {directed > 0 && (
+          <div className="text-center">
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "clamp(28px, 7vw, 44px)",
+                fontWeight: 700,
+                color: "var(--colour-accent-gold)",
+              }}
+            >
+              {directed}
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "13px",
+                color: "var(--colour-text-secondary)",
+              }}
+            >
+              Scenes Directed
+            </div>
           </div>
-          <div
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: "14px",
-              color: "var(--colour-text-secondary)",
-            }}
-          >
-            Scenes Shot 🎥
+        )}
+
+        {/* New Scenes Learned — only show if any */}
+        {learned > 0 && (
+          <div className="text-center">
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "clamp(28px, 7vw, 44px)",
+                fontWeight: 700,
+                color: "var(--colour-accent-gold-light)",
+              }}
+            >
+              {learned}
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "13px",
+                color: "var(--colour-text-secondary)",
+              }}
+            >
+              Scenes Learned
+            </div>
           </div>
-        </div>
+        )}
       </motion.div>
 
       {/* Question recap cards */}
@@ -110,39 +145,47 @@ export function SessionSummary({
         transition={{ delay: 0.5 }}
         className="flex flex-wrap gap-2 justify-center mb-8 max-w-[400px] relative z-10"
       >
-        {results.map((r, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{
-              delay: 0.6 + i * 0.08,
-              type: "spring",
-              stiffness: 260,
-              damping: 15,
-            }}
-            className="px-3 py-2 rounded-lg text-center"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "14px",
-              fontWeight: 600,
-              background: "var(--colour-bg-elevated)",
-              color: r.correct
-                ? "var(--colour-success)"
-                : "var(--colour-accent-gold-light)",
-              border: `1.5px solid ${
-                r.correct
-                  ? "rgba(78, 205, 196, 0.3)"
-                  : "rgba(230, 180, 34, 0.15)"
-              }`,
-              boxShadow: r.correct
-                ? "0 0 12px rgba(78, 205, 196, 0.15)"
-                : "0 2px 8px rgba(0,0,0,0.2)",
-            }}
-          >
-            {r.a}×{r.b}
-          </motion.div>
-        ))}
+        {results.map((r, i) => {
+          const cardColor = !r.correct
+            ? "var(--colour-accent-gold-light)"
+            : r.discoveryAssisted
+              ? "var(--colour-accent-gold)"
+              : "var(--colour-success)";
+          const borderColor = !r.correct
+            ? "rgba(230, 180, 34, 0.15)"
+            : r.discoveryAssisted
+              ? "rgba(230, 180, 34, 0.3)"
+              : "rgba(78, 205, 196, 0.3)";
+          const glow = r.correct && !r.discoveryAssisted
+            ? "0 0 12px rgba(78, 205, 196, 0.15)"
+            : "0 2px 8px rgba(0,0,0,0.2)";
+
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{
+                delay: 0.6 + i * 0.08,
+                type: "spring",
+                stiffness: 260,
+                damping: 15,
+              }}
+              className="px-3 py-2 rounded-lg text-center"
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "14px",
+                fontWeight: 600,
+                background: "var(--colour-bg-elevated)",
+                color: cardColor,
+                border: `1.5px solid ${borderColor}`,
+                boxShadow: glow,
+              }}
+            >
+              {r.a}×{r.b}
+            </motion.div>
+          );
+        })}
       </motion.div>
 
       {/* Back button */}

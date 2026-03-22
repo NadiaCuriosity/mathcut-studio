@@ -4,10 +4,15 @@ import { InteractiveArray } from "./InteractiveArray";
 import { BuildItArray } from "./BuildItArray";
 import { Keypad } from "./Keypad";
 import { FilmStrip } from "./FilmStrip";
+import {
+  DiscoveryPathway,
+  type DiscoveryResult,
+} from "./DiscoveryPathway";
 import { useProgress } from "../store";
 import { useSession } from "../session";
-import { speak, getCorrectLine, getIncorrectLine } from "../tts";
+import { speak, getCorrectLine } from "../tts";
 
+type ScreenMode = "normal" | "discovery";
 type Feedback = "correct" | "incorrect" | null;
 
 export function QuestionScreen() {
@@ -15,18 +20,22 @@ export function QuestionScreen() {
   const { session, currentQuestion, nextQuestion, wrapSession, recordAnswer } =
     useSession();
 
+  const [screenMode, setScreenMode] = useState<ScreenMode>("normal");
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [buildComplete, setBuildComplete] = useState(false);
   const [answerStartTime] = useState(Date.now());
+  const [discoveryStartLevel, setDiscoveryStartLevel] = useState<
+    number | undefined
+  >();
 
   if (!session || !currentQuestion) return null;
 
-  const { a, b, mode } = currentQuestion;
+  const { a, b, mode: questionMode } = currentQuestion;
   const correctAnswer = a * b;
-  const isBuildMode = mode === "build-it";
+  const isBuildMode = questionMode === "build-it";
 
   const fact = state.facts.find((f) => f.a === a && f.b === b);
   const boxName = fact
@@ -44,8 +53,8 @@ export function QuestionScreen() {
     setBuildComplete(true);
   }, []);
 
-  const handleSubmit = useCallback(async () => {
-    if (isProcessing || answer.length === 0) return;
+  const handleSubmit = useCallback(() => {
+    if (isProcessing || answer.length === 0 || screenMode !== "normal") return;
     setIsProcessing(true);
 
     const userAnswer = parseInt(answer, 10);
@@ -58,19 +67,23 @@ export function QuestionScreen() {
       setFeedbackText(line);
       setFeedback("correct");
       speak(line, state.settings.speechRate);
+      recordAnswer(isCorrect, responseTime, false, null);
+      setTimeout(() => nextQuestion(), 2500);
     } else {
-      dispatch({ type: "ANSWER_INCORRECT", a, b });
-      const line = getIncorrectLine();
-      setFeedbackText(line);
+      // Show shake, then enter discovery
       setFeedback("incorrect");
-      speak(line, state.settings.speechRate);
+      setFeedbackText("");
+      setTimeout(() => {
+        setScreenMode("discovery");
+        setDiscoveryStartLevel(undefined);
+        setAnswer("");
+        setIsProcessing(false);
+      }, 1200);
     }
-
-    recordAnswer(isCorrect, responseTime);
-    setTimeout(() => nextQuestion(), 2500);
   }, [
     answer,
     isProcessing,
+    screenMode,
     correctAnswer,
     answerStartTime,
     dispatch,
@@ -81,6 +94,32 @@ export function QuestionScreen() {
     nextQuestion,
   ]);
 
+  // "Help me, crew!" → jump to discovery Level 3
+  const handleHelpMe = useCallback(() => {
+    setDiscoveryStartLevel(3);
+    setScreenMode("discovery");
+  }, []);
+
+  // Discovery pathway completed
+  const handleDiscoveryComplete = useCallback(
+    (result: DiscoveryResult) => {
+      const responseTime = Date.now() - answerStartTime;
+      if (result.correct) {
+        dispatch({ type: "ANSWER_CORRECT", a, b });
+      } else {
+        dispatch({ type: "ANSWER_INCORRECT", a, b });
+      }
+      recordAnswer(
+        result.correct,
+        responseTime,
+        true,
+        result.discoveryLevel
+      );
+      setTimeout(() => nextQuestion(), 500);
+    },
+    [answerStartTime, dispatch, a, b, recordAnswer, nextQuestion]
+  );
+
   const answerColor =
     feedback === "correct"
       ? "var(--colour-success)"
@@ -90,7 +129,7 @@ export function QuestionScreen() {
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden">
-      {/* Warm spotlight glow */}
+      {/* Warm spotlight */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -135,7 +174,7 @@ export function QuestionScreen() {
         </span>
       </header>
 
-      {/* ── Question + inline answer (always top, both layouts) ── */}
+      {/* ── Question (always visible) ── */}
       <div className="relative z-10 text-center px-4 pt-2 sm:pt-4 pb-1 sm:pb-2">
         <motion.h1
           initial={{ opacity: 0, scale: 0.9 }}
@@ -150,78 +189,118 @@ export function QuestionScreen() {
           }}
         >
           {a} × {b}
-          <span style={{ opacity: 0.3 }}> = </span>
-          <motion.span
-            animate={
-              feedback === "incorrect"
-                ? { x: [0, -4, 4, -4, 4, 0] }
-                : { x: 0 }
-            }
-            transition={{ duration: 0.3 }}
-            style={{ fontFamily: "var(--font-mono)", color: answerColor }}
-          >
-            {answer || <span style={{ opacity: 0.2 }}>?</span>}
-          </motion.span>
+          {screenMode === "normal" && (
+            <>
+              <span style={{ opacity: 0.3 }}> = </span>
+              <motion.span
+                animate={
+                  feedback === "incorrect"
+                    ? { x: [0, -4, 4, -4, 4, 0] }
+                    : { x: 0 }
+                }
+                transition={{ duration: 0.3 }}
+                style={{ fontFamily: "var(--font-mono)", color: answerColor }}
+              >
+                {answer || <span style={{ opacity: 0.2 }}>?</span>}
+              </motion.span>
+            </>
+          )}
         </motion.h1>
 
-        <div className="h-5 sm:h-7 mt-1">
-          <AnimatePresence mode="wait">
-            {feedback && (
-              <motion.p
-                key={feedbackText}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                className="m-0"
+        {/* Feedback text (only in normal mode) */}
+        {screenMode === "normal" && (
+          <div className="h-5 sm:h-7 mt-1">
+            <AnimatePresence mode="wait">
+              {feedback && feedbackText && (
+                <motion.p
+                  key={feedbackText}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="m-0"
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "clamp(13px, 3vw, 18px)",
+                    fontWeight: 700,
+                    color:
+                      feedback === "correct"
+                        ? "var(--colour-success)"
+                        : "var(--colour-accent-gold-light)",
+                    letterSpacing: "0.01em",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {feedbackText}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+
+      {/* ── Content area ── */}
+      {screenMode === "normal" ? (
+        <div className="relative z-10 flex-1 flex flex-col md:flex-row md:items-start md:justify-center md:gap-12 lg:gap-20 min-h-0 px-4 sm:px-8">
+          {/* Array */}
+          <div className="flex-1 flex items-center justify-center min-h-0 overflow-y-auto md:flex-1 md:max-w-[520px]">
+            {isBuildMode && !buildComplete ? (
+              <BuildItArray
+                rows={a}
+                cols={b}
+                speechRate={state.settings.speechRate}
+                onComplete={handleBuildComplete}
+              />
+            ) : (
+              <InteractiveArray
+                rows={a}
+                cols={b}
+                speechRate={state.settings.speechRate}
+              />
+            )}
+          </div>
+
+          {/* Keypad + Help button */}
+          <div className="pt-2 pb-4 sm:pb-6 md:pt-8 md:pb-0 md:flex-none md:w-[340px]">
+            <Keypad
+              value={answer}
+              onChange={setAnswer}
+              onSubmit={handleSubmit}
+              disabled={isProcessing}
+            />
+            {/* Help me, crew! — appears after 3s, only when not processing */}
+            {!isProcessing && feedback === null && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.7 }}
+                transition={{ delay: 3 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleHelpMe}
+                className="w-full mt-3 py-2 rounded-xl cursor-pointer text-center"
                 style={{
                   fontFamily: "var(--font-body)",
-                  fontSize: "clamp(13px, 3vw, 18px)",
-                  fontWeight: 700,
-                  color:
-                    feedback === "correct"
-                      ? "var(--colour-success)"
-                      : "var(--colour-accent-gold-light)",
-                  letterSpacing: "0.01em",
-                  lineHeight: 1.4,
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  background: "transparent",
+                  color: "var(--colour-accent-gold-light)",
+                  border: "1.5px solid rgba(230, 180, 34, 0.12)",
                 }}
               >
-                {feedbackText}
-              </motion.p>
+                Help me, crew!
+              </motion.button>
             )}
-          </AnimatePresence>
+          </div>
         </div>
-      </div>
-
-      {/* ── Content: stacked on mobile, side-by-side on desktop ── */}
-      <div className="relative z-10 flex-1 flex flex-col md:flex-row md:items-start md:justify-center md:gap-12 lg:gap-20 min-h-0 px-4 sm:px-8">
-        {/* Array area */}
-        <div className="flex-1 flex items-center justify-center min-h-0 overflow-y-auto md:flex-1 md:max-w-[520px]">
-          {isBuildMode && !buildComplete ? (
-            <BuildItArray
-              rows={a}
-              cols={b}
-              speechRate={state.settings.speechRate}
-              onComplete={handleBuildComplete}
-            />
-          ) : (
-            <InteractiveArray
-              rows={a}
-              cols={b}
-              speechRate={state.settings.speechRate}
-            />
-          )}
-        </div>
-
-        {/* Keypad — bottom on mobile, right column on desktop */}
-        <div className="pt-2 pb-4 sm:pb-6 md:pt-8 md:pb-0 md:flex-none md:w-[340px]">
-          <Keypad
-            value={answer}
-            onChange={setAnswer}
-            onSubmit={handleSubmit}
-            disabled={isProcessing}
-          />
-        </div>
-      </div>
+      ) : (
+        <DiscoveryPathway
+          a={a}
+          b={b}
+          fact={fact!}
+          allFacts={state.facts}
+          speechRate={state.settings.speechRate}
+          initialLevel={discoveryStartLevel}
+          onComplete={handleDiscoveryComplete}
+        />
+      )}
 
       {/* Spotlight sweep on correct */}
       <AnimatePresence>
