@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
+import { useProgress } from "../store";
+import { getThemeIcons } from "../themes";
 
-const ICONS = ["🍿", "🎥", "🎬", "⭐", "🎭"];
-
-function getIcon(row: number, col: number): string {
-  return ICONS[(row * 7 + col * 3 + row + col) % ICONS.length];
+function getIcon(row: number, col: number, icons: string[]): string {
+  return icons[(row * 7 + col * 3 + row + col) % icons.length];
 }
 
 /** Scale icons so the grid fits both horizontally and vertically */
@@ -42,7 +42,9 @@ interface ArrayIconProps {
 }
 
 export function ArrayIcon({ row, col, delay = 0, cols = 4, totalRows }: ArrayIconProps) {
-  const icon = getIcon(row, col);
+  const { state } = useProgress();
+  const icons = getThemeIcons(state.settings.preferredTheme);
+  const icon = getIcon(row, col, icons);
   const wiggle = ((row * 3 + col * 7) % 7) - 3;
   const rows = totalRows ?? cols;
 

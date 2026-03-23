@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useProgress } from "../store";
 import { useSession, type PracticeMode } from "../session";
 import { ModeSelectScreen } from "./ModeSelectScreen";
@@ -9,6 +9,11 @@ import { QuestionScreen } from "./QuestionScreen";
 import { ActionSceneScreen, calcActionSceneTotal } from "./ActionSceneScreen";
 import { SessionSummary } from "./SessionSummary";
 import { TableIntro } from "./TableIntro";
+import { AwardCelebration, PremiereCelebration } from "./CelebrationOverlay";
+import { checkNewAwards, getAwardDef } from "../awards";
+import { THEMES } from "../themes";
+import { getTableProgress } from "../leitner";
+import { getTableInfo } from "../tables";
 import type { SessionRecord } from "../types";
 
 export function PracticeFlow() {
@@ -23,8 +28,11 @@ export function PracticeFlow() {
   } = useSession();
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(null);
   const [introTable, setIntroTable] = useState<number | null>(null);
+  const [pendingAwards, setPendingAwards] = useState<string[]>([]);
+  const [premiereTable, setPremiereTable] = useState<number | null>(null);
   const navigate = useNavigate();
   const savedRef = useRef(false);
+  const celebrationCheckedRef = useRef(false);
 
   // ── Mode selection ──
   const handleModeSelect = useCallback(
@@ -103,11 +111,62 @@ export function PracticeFlow() {
     }
   }, [isComplete, session, dispatch]);
 
+  // ── Check awards, themes, and premiere after state updates ──
+  useEffect(() => {
+    if (!isComplete || !session || !savedRef.current || celebrationCheckedRef.current) return;
+    // Wait for state to reflect the new session
+    if (!state.sessions.some((s) => s.date === state.sessions[state.sessions.length - 1]?.date)) return;
+    celebrationCheckedRef.current = true;
+
+    // Check for new awards
+    const newAwards = checkNewAwards(state);
+    if (newAwards.length > 0) {
+      for (const id of newAwards) dispatch({ type: "UNLOCK_AWARD", id });
+      setPendingAwards(newAwards);
+    }
+
+    // Check for theme unlocks
+    for (const theme of THEMES) {
+      if (state.unlockedThemes.includes(theme.id)) continue;
+      if (theme.unlockTable === 0) {
+        // Monster Movie: all tables
+        if (theme.id === "monster-movie" && state.studioLevel >= 10) {
+          dispatch({ type: "UNLOCK_THEME", id: theme.id });
+        }
+        continue;
+      }
+      const p = getTableProgress(state.facts, theme.unlockTable);
+      if (p.total > 0 && p.mastered === p.total) {
+        dispatch({ type: "UNLOCK_THEME", id: theme.id });
+      }
+    }
+
+    // Check for premiere (table just mastered this session)
+    if (session.table > 0) {
+      const p = getTableProgress(state.facts, session.table);
+      if (p.total > 0 && p.mastered === p.total) {
+        setPremiereTable(session.table);
+      }
+    }
+  }, [isComplete, session, state, dispatch]);
+
+  // ── Celebration dismiss handlers ──
+  const dismissAward = useCallback(() => {
+    setPendingAwards((prev) => prev.slice(1));
+  }, []);
+
+  const dismissPremiere = useCallback(() => {
+    setPremiereTable(null);
+  }, []);
+
   // ── Navigation ──
   const handleBackToStudio = useCallback(() => {
     savedRef.current = false;
+    celebrationCheckedRef.current = false;
     resetSession();
     setSelectedMode(null);
+    setPendingAwards([]);
+    setPremiereTable(null);
     navigate("/");
   }, [resetSession, navigate]);
 
@@ -165,7 +224,38 @@ export function PracticeFlow() {
     return <TableIntro table={introTable} onComplete={handleIntroComplete} />;
   }
 
-  // 4. Session summary
+  // 4. Celebrations (awards + premiere) — shown before summary
+  if (isComplete && session && premiereTable !== null) {
+    const info = getTableInfo(premiereTable);
+    return (
+      <AnimatePresence>
+        <PremiereCelebration
+          table={premiereTable}
+          tableName={info?.name ?? `Table ${premiereTable}`}
+          tableEmoji={info?.emoji ?? "🎬"}
+          onDone={dismissPremiere}
+        />
+      </AnimatePresence>
+    );
+  }
+
+  if (isComplete && session && pendingAwards.length > 0) {
+    const award = getAwardDef(pendingAwards[0]);
+    if (award) {
+      return (
+        <AnimatePresence>
+          <AwardCelebration
+            emoji={award.emoji}
+            name={award.name}
+            description={award.description}
+            onDone={dismissAward}
+          />
+        </AnimatePresence>
+      );
+    }
+  }
+
+  // 5. Session summary
   if (isComplete && session) {
     return (
       <SessionSummary

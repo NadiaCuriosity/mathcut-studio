@@ -5,6 +5,7 @@ import { BuildItArray } from "./BuildItArray";
 import { Keypad } from "./Keypad";
 import { FilmStrip } from "./FilmStrip";
 import { TimerBar } from "./TimerBar";
+import { ClapperboardWipe } from "./ClapperboardWipe";
 import {
   DiscoveryPathway,
   type DiscoveryResult,
@@ -235,6 +236,9 @@ export function QuestionScreen() {
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden">
+      {/* Clapperboard wipe between questions */}
+      <ClapperboardWipe triggerKey={session.currentIndex} />
+
       {/* Warm spotlight */}
       <div
         className="absolute inset-0 pointer-events-none"

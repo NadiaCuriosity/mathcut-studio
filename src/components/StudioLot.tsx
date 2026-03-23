@@ -207,6 +207,56 @@ export function StudioLot() {
             MATHCUT STUDIO
           </text>
 
+          {/* Lizard Linc mascot — sitting on the gate */}
+          <g>
+            <text
+              x="258"
+              y="252"
+              style={{ fontSize: "16px" }}
+            >
+              {state.studioLevel >= 7
+                ? "🐉"
+                : state.studioLevel >= 3
+                  ? "🦎"
+                  : "🦎"}
+            </text>
+            {/* Speech bubble for the lizard */}
+            {state.studioLevel > 0 && (
+              <>
+                <rect
+                  x="268"
+                  y="237"
+                  width={state.studioLevel >= 5 ? 38 : 28}
+                  height="13"
+                  rx="3"
+                  fill="#232342"
+                  stroke="#e6b422"
+                  strokeWidth="0.5"
+                  opacity="0.8"
+                />
+                <text
+                  x={state.studioLevel >= 5 ? 287 : 282}
+                  y="247"
+                  textAnchor="middle"
+                  style={{
+                    fontSize: "6px",
+                    fill: "#e6b422",
+                    fontFamily: "Bebas Neue, Impact, sans-serif",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  {state.studioLevel >= 8
+                    ? "LEGEND!"
+                    : state.studioLevel >= 5
+                      ? "AMAZING!"
+                      : state.studioLevel >= 3
+                        ? "NICE!"
+                        : "HI!"}
+                </text>
+              </>
+            )}
+          </g>
+
           {/* Buildings */}
           {BUILDINGS.map((b) => {
             const status = getStatus(state.facts, b.table);

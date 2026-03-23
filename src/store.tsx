@@ -37,7 +37,7 @@ function createInitialProgress(): UserProgress {
     facts,
     sessions: [],
     studioLevel: 0,
-    unlockedThemes: ["directors-set"],
+    unlockedThemes: ["lizard-lounge", "directors-set"],
     unlockedAwards: [],
     settings: {
       speechRate: 1.0,
@@ -45,7 +45,7 @@ function createInitialProgress(): UserProgress {
       highContrastMode: false,
       timerEnabled: false,
       sessionLength: 10,
-      preferredTheme: "directors-set",
+      preferredTheme: "lizard-lounge",
       voiceInputEnabled: true,
     },
     streak: {
@@ -125,7 +125,10 @@ type Action =
   | { type: "ANSWER_INCORRECT"; a: number; b: number }
   | { type: "INTRODUCE_TABLE"; table: number }
   | { type: "COMPLETE_SESSION"; session: SessionRecord }
-  | { type: "SET_ACTION_SCENE_BEST"; score: number };
+  | { type: "SET_ACTION_SCENE_BEST"; score: number }
+  | { type: "UNLOCK_AWARD"; id: string }
+  | { type: "UNLOCK_THEME"; id: string }
+  | { type: "SET_THEME"; id: string };
 
 function findFact(facts: FactRecord[], a: number, b: number) {
   return facts.findIndex((f) => f.a === a && f.b === b);
@@ -198,6 +201,27 @@ function reducer(state: UserProgress, action: Action): UserProgress {
     case "SET_ACTION_SCENE_BEST": {
       if (action.score <= state.actionSceneBest) return state;
       return { ...state, actionSceneBest: action.score };
+    }
+    case "UNLOCK_AWARD": {
+      if (state.unlockedAwards.includes(action.id)) return state;
+      return {
+        ...state,
+        unlockedAwards: [...state.unlockedAwards, action.id],
+      };
+    }
+    case "UNLOCK_THEME": {
+      if (state.unlockedThemes.includes(action.id)) return state;
+      return {
+        ...state,
+        unlockedThemes: [...state.unlockedThemes, action.id],
+      };
+    }
+    case "SET_THEME": {
+      if (state.settings.preferredTheme === action.id) return state;
+      return {
+        ...state,
+        settings: { ...state.settings, preferredTheme: action.id },
+      };
     }
     default:
       return state;
