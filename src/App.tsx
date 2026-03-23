@@ -1,62 +1,39 @@
-import { useState, useCallback } from "react";
-import { ProgressProvider, useProgress } from "./store";
-import { SessionProvider, useSession } from "./session";
-import { TableSelectScreen } from "./components/TableSelectScreen";
-import { QuestionScreen } from "./components/QuestionScreen";
-import { SessionSummary } from "./components/SessionSummary";
-import { TableIntro } from "./components/TableIntro";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { ProgressProvider } from "./store";
+import { SessionProvider } from "./session";
+import { BottomNav } from "./components/BottomNav";
+import { StudioLot } from "./components/StudioLot";
+import { MyMovies } from "./components/MyMovies";
+import { MovieDetail } from "./components/MovieDetail";
+import { AwardsScreen } from "./components/AwardsScreen";
+import { PracticeFlow } from "./components/PracticeFlow";
 
-function AppContent() {
-  const { state, dispatch } = useProgress();
-  const { session, isComplete, startSession, resetSession } = useSession();
-  const [introTable, setIntroTable] = useState<number | null>(null);
-
-  const handleStart = useCallback(
-    (table: number) => {
-      startSession(table, state.facts, state.settings.sessionLength);
-
-      if (!(state.tablesIntroduced ?? []).includes(table)) {
-        dispatch({ type: "INTRODUCE_TABLE", table });
-        setIntroTable(table);
-      }
-    },
-    [state, startSession, dispatch]
+function Layout() {
+  return (
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-hidden relative">
+        <Outlet />
+      </div>
+      <BottomNav />
+    </div>
   );
-
-  const handleIntroComplete = useCallback(() => {
-    setIntroTable(null);
-  }, []);
-
-  // Table selection
-  if (!session) {
-    return <TableSelectScreen onStart={handleStart} />;
-  }
-
-  // Table intro (first encounter)
-  if (introTable !== null) {
-    return <TableIntro table={introTable} onComplete={handleIntroComplete} />;
-  }
-
-  // Session summary
-  if (isComplete) {
-    return (
-      <SessionSummary
-        results={session.results}
-        table={session.table}
-        onBackToStudio={resetSession}
-      />
-    );
-  }
-
-  // Active question
-  return <QuestionScreen key={session.currentIndex} />;
 }
 
 function App() {
   return (
     <ProgressProvider>
       <SessionProvider>
-        <AppContent />
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<StudioLot />} />
+              <Route path="/movies" element={<MyMovies />} />
+              <Route path="/movies/:table" element={<MovieDetail />} />
+              <Route path="/awards" element={<AwardsScreen />} />
+            </Route>
+            <Route path="/practice" element={<PracticeFlow />} />
+          </Routes>
+        </BrowserRouter>
       </SessionProvider>
     </ProgressProvider>
   );

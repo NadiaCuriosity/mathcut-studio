@@ -1,27 +1,14 @@
 import { motion } from "framer-motion";
 import { useProgress } from "../store";
 import { getTableProgress, recommendTable } from "../leitner";
-
-const TABLE_INFO = [
-  { table: 1, emoji: "🏆", name: "The One" },
-  { table: 2, emoji: "✌️", name: "Double Feature" },
-  { table: 3, emoji: "🎭", name: "Triple Threat" },
-  { table: 4, emoji: "🍀", name: "Fantastic Four" },
-  { table: 5, emoji: "⭐", name: "High Five" },
-  { table: 6, emoji: "🎲", name: "Six Shooter" },
-  { table: 7, emoji: "🌈", name: "Lucky Seven" },
-  { table: 8, emoji: "🐙", name: "Octo-plex" },
-  { table: 9, emoji: "✨", name: "Cloud Nine" },
-  { table: 10, emoji: "💯", name: "Perfect Ten" },
-  { table: 11, emoji: "🎸", name: "Up to Eleven" },
-  { table: 12, emoji: "🕛", name: "Dirty Dozen" },
-];
+import { TABLE_INFO } from "../tables";
 
 interface TableSelectScreenProps {
   onStart: (table: number) => void;
+  onBack?: () => void;
 }
 
-export function TableSelectScreen({ onStart }: TableSelectScreenProps) {
+export function TableSelectScreen({ onStart, onBack }: TableSelectScreenProps) {
   const { state } = useProgress();
 
   return (
@@ -36,34 +23,40 @@ export function TableSelectScreen({ onStart }: TableSelectScreenProps) {
       />
 
       {/* Header */}
-      <header className="relative z-10 flex flex-col items-center pt-6 sm:pt-8 pb-1 px-5">
-        <p
-          className="text-xs sm:text-sm tracking-[0.08em] uppercase m-0 leading-tight"
-          style={{
-            fontFamily: "var(--font-display)",
-            color: "var(--colour-accent-gold)",
-            opacity: 0.6,
-          }}
-        >
-          Lincoln Cole Ellis
-        </p>
+      <header className="relative z-10 flex flex-col items-center pt-5 sm:pt-7 pb-1 px-5">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="self-start mb-2 cursor-pointer"
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--colour-accent-gold)",
+              fontFamily: "var(--font-body)",
+              fontSize: "14px",
+              padding: 0,
+            }}
+          >
+            ← Studio Lot
+          </button>
+        )}
         <h1
           className="text-2xl sm:text-3xl tracking-[0.05em] uppercase m-0 leading-tight"
           style={{
             fontFamily: "var(--font-display)",
-            color: "var(--colour-text-primary)",
+            color: "var(--colour-accent-gold)",
           }}
         >
-          MathCut Studio
+          START SHOOTING
         </h1>
         <p
-          className="text-base sm:text-lg mt-3 mb-0"
+          className="text-base sm:text-lg mt-2 mb-0"
           style={{
             fontFamily: "var(--font-body)",
             color: "var(--colour-text-secondary)",
           }}
         >
-          Pick your movie! 🎬
+          Pick your movie!
         </p>
       </header>
 

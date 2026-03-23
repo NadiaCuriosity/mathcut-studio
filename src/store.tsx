@@ -5,7 +5,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import type { UserProgress, FactRecord } from "./types";
+import type { UserProgress, FactRecord, SessionRecord, StreakData } from "./types";
 
 const STORAGE_KEY = "mathcut-studio-data";
 
@@ -62,9 +62,18 @@ function loadProgress(): UserProgress {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw) as UserProgress;
-      // Migration: add tablesIntroduced if missing
+      // Migrations for older data
       if (!data.tablesIntroduced) {
         data.tablesIntroduced = [1];
+      }
+      if (!data.sessions) {
+        data.sessions = [];
+      }
+      if (!data.streak) {
+        data.streak = { currentStreak: 0, longestStreak: 0, lastActiveDate: "" };
+      }
+      if (data.studioLevel === undefined) {
+        data.studioLevel = 0;
       }
       return data;
     }
@@ -78,12 +87,40 @@ function saveProgress(state: UserProgress) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+// ── Utilities ──
+
+export function calculateStudioLevel(facts: FactRecord[]): number {
+  const tables = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12];
+  let level = 0;
+  for (const table of tables) {
+    const tableFacts = facts.filter(
+      (f) => f.a === table && f.b !== 1 && f.b !== 10
+    );
+    if (tableFacts.length > 0 && tableFacts.every((f) => f.box >= 4)) {
+      level++;
+    }
+  }
+  return level;
+}
+
+export function getEffectiveStreak(streak: StreakData): number {
+  if (!streak.lastActiveDate) return 0;
+  const today = new Date().toISOString().split("T")[0];
+  if (streak.lastActiveDate === today) return streak.currentStreak;
+  const yesterday = new Date(Date.now() - 86_400_000)
+    .toISOString()
+    .split("T")[0];
+  if (streak.lastActiveDate === yesterday) return streak.currentStreak;
+  return 0; // streak broken
+}
+
 // ── Actions ──
 
 type Action =
   | { type: "ANSWER_CORRECT"; a: number; b: number }
   | { type: "ANSWER_INCORRECT"; a: number; b: number }
-  | { type: "INTRODUCE_TABLE"; table: number };
+  | { type: "INTRODUCE_TABLE"; table: number }
+  | { type: "COMPLETE_SESSION"; session: SessionRecord };
 
 function findFact(facts: FactRecord[], a: number, b: number) {
   return facts.findIndex((f) => f.a === a && f.b === b);
@@ -128,6 +165,29 @@ function reducer(state: UserProgress, action: Action): UserProgress {
       return {
         ...state,
         tablesIntroduced: [...state.tablesIntroduced, action.table],
+      };
+    }
+    case "COMPLETE_SESSION": {
+      const today = now.split("T")[0];
+      const lastActive = state.streak.lastActiveDate;
+      let currentStreak = state.streak.currentStreak;
+      let { longestStreak } = state.streak;
+
+      if (lastActive !== today) {
+        const yesterday = new Date(Date.now() - 86_400_000)
+          .toISOString()
+          .split("T")[0];
+        currentStreak = lastActive === yesterday ? currentStreak + 1 : 1;
+        longestStreak = Math.max(longestStreak, currentStreak);
+      }
+
+      const newLevel = calculateStudioLevel(state.facts);
+
+      return {
+        ...state,
+        sessions: [...state.sessions, action.session],
+        streak: { currentStreak, longestStreak, lastActiveDate: today },
+        studioLevel: Math.max(state.studioLevel, newLevel),
       };
     }
     default:
