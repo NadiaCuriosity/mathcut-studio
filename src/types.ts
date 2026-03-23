@@ -61,4 +61,5 @@ export interface UserProgress {
   settings: UserSettings;
   streak: StreakData;
   tablesIntroduced: number[];
+  actionSceneBest: number;
 }

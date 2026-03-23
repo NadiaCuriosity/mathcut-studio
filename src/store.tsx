@@ -54,6 +54,7 @@ function createInitialProgress(): UserProgress {
       lastActiveDate: "",
     },
     tablesIntroduced: [1, 10],
+    actionSceneBest: 0,
   };
 }
 
@@ -74,6 +75,9 @@ function loadProgress(): UserProgress {
       }
       if (data.studioLevel === undefined) {
         data.studioLevel = 0;
+      }
+      if (data.actionSceneBest === undefined) {
+        data.actionSceneBest = 0;
       }
       return data;
     }
@@ -120,7 +124,8 @@ type Action =
   | { type: "ANSWER_CORRECT"; a: number; b: number }
   | { type: "ANSWER_INCORRECT"; a: number; b: number }
   | { type: "INTRODUCE_TABLE"; table: number }
-  | { type: "COMPLETE_SESSION"; session: SessionRecord };
+  | { type: "COMPLETE_SESSION"; session: SessionRecord }
+  | { type: "SET_ACTION_SCENE_BEST"; score: number };
 
 function findFact(facts: FactRecord[], a: number, b: number) {
   return facts.findIndex((f) => f.a === a && f.b === b);
@@ -189,6 +194,10 @@ function reducer(state: UserProgress, action: Action): UserProgress {
         streak: { currentStreak, longestStreak, lastActiveDate: today },
         studioLevel: Math.max(state.studioLevel, newLevel),
       };
+    }
+    case "SET_ACTION_SCENE_BEST": {
+      if (action.score <= state.actionSceneBest) return state;
+      return { ...state, actionSceneBest: action.score };
     }
     default:
       return state;

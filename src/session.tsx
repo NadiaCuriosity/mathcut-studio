@@ -6,8 +6,13 @@ import {
   type ReactNode,
 } from "react";
 import type { FactRecord } from "./types";
-import { selectSessionFacts } from "./leitner";
+import {
+  selectSessionFacts,
+  selectActionSceneFacts,
+  selectDirectorsCutFacts,
+} from "./leitner";
 
+export type PracticeMode = "rehearsal" | "take" | "action" | "directors-cut";
 export type PresentationMode = "build-it" | "interactive";
 
 export interface SessionQuestion {
@@ -26,7 +31,8 @@ export interface SessionResult {
 }
 
 export interface SessionData {
-  table: number;
+  table: number; // 0 for multi-table modes (action, directors-cut)
+  practiceMode: PracticeMode;
   questions: SessionQuestion[];
   currentIndex: number;
   results: SessionResult[];
@@ -34,7 +40,17 @@ export interface SessionData {
   missCount: Record<string, number>;
 }
 
-function getMode(fact: FactRecord): PresentationMode {
+function getMode(fact: FactRecord, practiceMode: PracticeMode): PresentationMode {
+  // Action Scene: always interactive (no build-it for mastered facts)
+  if (practiceMode === "action") return "interactive";
+
+  // Take / Director's Cut: scale visual with box
+  if (practiceMode === "take" || practiceMode === "directors-cut") {
+    if (fact.box === 1 || fact.recentMisses >= 2) return "build-it";
+    return "interactive"; // visual scaling handled in QuestionScreen
+  }
+
+  // Rehearsal (default)
   if (fact.box === 1 || fact.recentMisses >= 2) return "build-it";
   return "interactive";
 }
@@ -46,8 +62,11 @@ interface SessionContextValue {
   startSession: (
     table: number,
     facts: FactRecord[],
-    sessionLength: number
+    sessionLength: number,
+    mode?: PracticeMode
   ) => void;
+  startActionScene: (facts: FactRecord[], count?: number) => void;
+  startDirectorsCut: (facts: FactRecord[], count?: number) => void;
   recordAnswer: (
     correct: boolean,
     responseTime: number,
@@ -65,15 +84,63 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionData | null>(null);
 
   const startSession = useCallback(
-    (table: number, facts: FactRecord[], sessionLength: number) => {
+    (
+      table: number,
+      facts: FactRecord[],
+      sessionLength: number,
+      mode: PracticeMode = "rehearsal"
+    ) => {
       const selected = selectSessionFacts(facts, table, sessionLength);
       const questions: SessionQuestion[] = selected.map((f) => ({
         a: f.a,
         b: f.b,
-        mode: getMode(f),
+        mode: getMode(f, mode),
       }));
       setSession({
         table,
+        practiceMode: mode,
+        questions,
+        currentIndex: 0,
+        results: [],
+        startTime: Date.now(),
+        missCount: {},
+      });
+    },
+    []
+  );
+
+  const startActionScene = useCallback(
+    (facts: FactRecord[], count = 15) => {
+      const selected = selectActionSceneFacts(facts, count);
+      const questions: SessionQuestion[] = selected.map((f) => ({
+        a: f.a,
+        b: f.b,
+        mode: "interactive" as PresentationMode,
+      }));
+      setSession({
+        table: 0,
+        practiceMode: "action",
+        questions,
+        currentIndex: 0,
+        results: [],
+        startTime: Date.now(),
+        missCount: {},
+      });
+    },
+    []
+  );
+
+  const startDirectorsCut = useCallback(
+    (facts: FactRecord[], count = 12) => {
+      const selected = selectDirectorsCutFacts(facts, count);
+      const questions: SessionQuestion[] = selected.map((f) => ({
+        a: f.a,
+        b: f.b,
+        mode: getMode(f, "directors-cut"),
+      }));
+      setSession({
+        table: 0,
+        practiceMode: "directors-cut",
         questions,
         currentIndex: 0,
         results: [],
@@ -98,7 +165,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const newMissCount = { ...prev.missCount };
         let newQuestions = prev.questions;
 
-        if (!correct) {
+        // Action Scene: no retries
+        if (!correct && prev.practiceMode !== "action") {
           newMissCount[key] = (newMissCount[key] || 0) + 1;
           // Queue retry 3-4 questions later if not already missed twice (frustration guard)
           if (newMissCount[key] < 2) {
@@ -113,6 +181,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
               mode: "build-it" as PresentationMode,
             });
           }
+        } else if (!correct) {
+          newMissCount[key] = (newMissCount[key] || 0) + 1;
         }
 
         return {
@@ -169,6 +239,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         currentQuestion,
         isComplete,
         startSession,
+        startActionScene,
+        startDirectorsCut,
         recordAnswer,
         nextQuestion,
         wrapSession,

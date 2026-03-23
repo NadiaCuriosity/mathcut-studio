@@ -1,16 +1,36 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { SessionResult } from "../session";
+import type { PracticeMode } from "../session";
+import { calcActionSceneTotal } from "./ActionSceneScreen";
 import { speak } from "../tts";
 
 interface SessionSummaryProps {
   results: SessionResult[];
   table: number;
+  practiceMode: PracticeMode;
+  personalBest: number;
   onBackToStudio: () => void;
 }
 
+const MODE_TITLES: Record<PracticeMode, string> = {
+  rehearsal: "THAT'S A WRAP!",
+  take: "THAT'S A WRAP!",
+  action: "BOX OFFICE REPORT",
+  "directors-cut": "DIRECTOR'S CUT WRAP!",
+};
+
+const MODE_EMOJIS: Record<PracticeMode, string> = {
+  rehearsal: "🎬",
+  take: "🎥",
+  action: "💥",
+  "directors-cut": "🎞️",
+};
+
 export function SessionSummary({
   results,
+  practiceMode,
+  personalBest,
   onBackToStudio,
 }: SessionSummaryProps) {
   const nailed = results.filter(
@@ -21,9 +41,39 @@ export function SessionSummary({
   ).length;
   const learned = results.filter((r) => !r.correct).length;
 
+  const actionScore = useMemo(
+    () =>
+      practiceMode === "action" ? calcActionSceneTotal(results) : 0,
+    [practiceMode, results]
+  );
+  const isNewBest =
+    practiceMode === "action" && actionScore > personalBest;
+
+  // Director's Cut table breakdown
+  const tableBreakdown = useMemo(() => {
+    if (practiceMode !== "directors-cut") return [];
+    const map = new Map<number, { correct: number; total: number }>();
+    for (const r of results) {
+      const t = r.a;
+      if (!map.has(t)) map.set(t, { correct: 0, total: 0 });
+      const entry = map.get(t)!;
+      entry.total++;
+      if (r.correct) entry.correct++;
+    }
+    return [...map.entries()].sort((a, b) => a[0] - b[0]);
+  }, [practiceMode, results]);
+
   useEffect(() => {
-    speak("That's a wrap on today's shoot!");
-  }, []);
+    if (practiceMode === "action") {
+      speak(
+        isNewBest
+          ? "New personal best! Incredible box office numbers!"
+          : "That's a wrap on the action scene!"
+      );
+    } else {
+      speak("That's a wrap on today's shoot!");
+    }
+  }, [practiceMode, isNewBest]);
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-5 relative overflow-hidden">
@@ -43,25 +93,88 @@ export function SessionSummary({
         transition={{ type: "spring", stiffness: 200, damping: 12 }}
         className="text-center mb-6 relative z-10"
       >
-        <div className="text-5xl sm:text-6xl mb-3">🎬</div>
+        <div className="text-5xl sm:text-6xl mb-3">
+          {MODE_EMOJIS[practiceMode]}
+        </div>
         <h1
           className="m-0"
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: "clamp(36px, 10vw, 56px)",
+            fontSize: "clamp(28px, 8vw, 48px)",
             color: "var(--colour-accent-gold)",
             textShadow: "0 0 40px rgba(230, 180, 34, 0.25)",
           }}
         >
-          THAT'S A WRAP!
+          {MODE_TITLES[practiceMode]}
         </h1>
       </motion.div>
+
+      {/* Action Scene: Score display */}
+      {practiceMode === "action" && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-center mb-4 relative z-10"
+        >
+          <div
+            className="text-xs uppercase tracking-widest mb-1"
+            style={{
+              fontFamily: "var(--font-display)",
+              color: "var(--colour-accent-gold-light)",
+            }}
+          >
+            Box Office Takings
+          </div>
+          <motion.div
+            initial={{ scale: 0.5 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 10, delay: 0.4 }}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "clamp(36px, 10vw, 56px)",
+              fontWeight: 700,
+              color: isNewBest
+                ? "var(--colour-success)"
+                : "var(--colour-accent-gold)",
+            }}
+          >
+            {actionScore.toLocaleString()}
+          </motion.div>
+          {isNewBest && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="text-sm mt-1"
+              style={{
+                fontFamily: "var(--font-display)",
+                color: "var(--colour-success)",
+                letterSpacing: "0.08em",
+              }}
+            >
+              NEW PERSONAL BEST!
+            </motion.div>
+          )}
+          {!isNewBest && personalBest > 0 && (
+            <div
+              className="text-xs mt-1"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--colour-text-secondary)",
+              }}
+            >
+              Best: {personalBest.toLocaleString()}
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Stats — three categories */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: practiceMode === "action" ? 0.5 : 0.3 }}
         className="flex gap-6 sm:gap-10 mb-6 relative z-10 flex-wrap justify-center"
       >
         {/* Scenes Nailed */}
@@ -83,7 +196,7 @@ export function SessionSummary({
               color: "var(--colour-text-secondary)",
             }}
           >
-            Scenes Nailed
+            {practiceMode === "action" ? "Nailed" : "Scenes Nailed"}
           </div>
         </div>
 
@@ -132,17 +245,60 @@ export function SessionSummary({
                 color: "var(--colour-text-secondary)",
               }}
             >
-              Scenes Learned
+              {practiceMode === "action" ? "Missed" : "Scenes Learned"}
             </div>
           </div>
         )}
       </motion.div>
 
+      {/* Director's Cut: table breakdown */}
+      {tableBreakdown.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="flex flex-wrap gap-2 justify-center mb-4 relative z-10"
+        >
+          {tableBreakdown.map(([table, stats]) => (
+            <div
+              key={table}
+              className="px-3 py-1.5 rounded-lg text-center"
+              style={{
+                background: "var(--colour-bg-elevated)",
+                border: "1px solid rgba(230, 180, 34, 0.15)",
+              }}
+            >
+              <div
+                className="text-xs"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  color: "var(--colour-accent-gold)",
+                }}
+              >
+                ×{table}
+              </div>
+              <div
+                className="text-xs"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  color:
+                    stats.correct === stats.total
+                      ? "var(--colour-success)"
+                      : "var(--colour-text-secondary)",
+                }}
+              >
+                {stats.correct}/{stats.total}
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      )}
+
       {/* Question recap cards */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: practiceMode === "action" ? 0.7 : 0.5 }}
         className="flex flex-wrap gap-2 justify-center mb-8 max-w-[400px] relative z-10"
       >
         {results.map((r, i) => {
@@ -156,9 +312,10 @@ export function SessionSummary({
             : r.discoveryAssisted
               ? "rgba(230, 180, 34, 0.3)"
               : "rgba(78, 205, 196, 0.3)";
-          const glow = r.correct && !r.discoveryAssisted
-            ? "0 0 12px rgba(78, 205, 196, 0.15)"
-            : "0 2px 8px rgba(0,0,0,0.2)";
+          const glow =
+            r.correct && !r.discoveryAssisted
+              ? "0 0 12px rgba(78, 205, 196, 0.15)"
+              : "0 2px 8px rgba(0,0,0,0.2)";
 
           return (
             <motion.div
@@ -166,7 +323,7 @@ export function SessionSummary({
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{
-                delay: 0.6 + i * 0.08,
+                delay: (practiceMode === "action" ? 0.8 : 0.6) + i * 0.08,
                 type: "spring",
                 stiffness: 260,
                 damping: 15,

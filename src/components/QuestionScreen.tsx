@@ -4,6 +4,7 @@ import { InteractiveArray } from "./InteractiveArray";
 import { BuildItArray } from "./BuildItArray";
 import { Keypad } from "./Keypad";
 import { FilmStrip } from "./FilmStrip";
+import { TimerBar } from "./TimerBar";
 import {
   DiscoveryPathway,
   type DiscoveryResult,
@@ -14,6 +15,52 @@ import { speak, getCorrectLine } from "../tts";
 
 type ScreenMode = "normal" | "discovery";
 type Feedback = "correct" | "incorrect" | null;
+
+/**
+ * Determines the visual aid level for Take / Director's Cut modes.
+ * 1 = build-it, 2 = full array, 3 = partial/faded, 4 = minimal hint, 5 = number-only
+ */
+function getVisualLevel(box: number, practiceMode: string): number {
+  if (practiceMode === "take" || practiceMode === "directors-cut") {
+    return Math.max(1, Math.min(5, box));
+  }
+  return 2; // Rehearsal always gets full array (build-it handled separately)
+}
+
+/** Minimal dot-grid hint for Box 4 (Take mode) */
+function MinimalHint({ rows, cols }: { rows: number; cols: number }) {
+  return (
+    <div className="flex flex-col items-center gap-1 opacity-40">
+      {Array.from({ length: Math.min(rows, 6) }, (_, r) => (
+        <div key={r} className="flex gap-1">
+          {Array.from({ length: Math.min(cols, 6) }, (_, c) => (
+            <div
+              key={c}
+              className="w-2 h-2 rounded-full"
+              style={{ background: "var(--colour-accent-gold)" }}
+            />
+          ))}
+          {cols > 6 && (
+            <span
+              className="text-[10px] leading-none"
+              style={{ color: "var(--colour-accent-gold)", opacity: 0.6 }}
+            >
+              +{cols - 6}
+            </span>
+          )}
+        </div>
+      ))}
+      {rows > 6 && (
+        <span
+          className="text-[10px]"
+          style={{ color: "var(--colour-accent-gold)", opacity: 0.6 }}
+        >
+          +{rows - 6} rows
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function QuestionScreen() {
   const { state, dispatch } = useProgress();
@@ -36,8 +83,11 @@ export function QuestionScreen() {
   const { a, b, mode: questionMode } = currentQuestion;
   const correctAnswer = a * b;
   const isBuildMode = questionMode === "build-it";
+  const practiceMode = session.practiceMode;
 
   const fact = state.facts.find((f) => f.a === a && f.b === b);
+  const visualLevel = getVisualLevel(fact?.box ?? 1, practiceMode);
+
   const boxName = fact
     ? [
         "",
@@ -94,7 +144,7 @@ export function QuestionScreen() {
     nextQuestion,
   ]);
 
-  // "Help me, crew!" → jump to discovery Level 3
+  // "Help me, crew!" -> jump to discovery Level 3
   const handleHelpMe = useCallback(() => {
     setDiscoveryStartLevel(3);
     setScreenMode("discovery");
@@ -126,6 +176,62 @@ export function QuestionScreen() {
       : feedback === "incorrect"
         ? "var(--colour-cta)"
         : "var(--colour-text-primary)";
+
+  // Render the visual aid based on mode and visual level
+  const renderArray = () => {
+    // Build-it mode always takes priority (Box 1 or retries)
+    if (isBuildMode && !buildComplete) {
+      return (
+        <BuildItArray
+          rows={a}
+          cols={b}
+          speechRate={state.settings.speechRate}
+          onComplete={handleBuildComplete}
+        />
+      );
+    }
+
+    // Take/Director's Cut visual scaling
+    if (visualLevel >= 5) {
+      // Box 5: number-only — no array
+      return null;
+    }
+
+    if (visualLevel === 4) {
+      // Box 4: minimal dot hint
+      return <MinimalHint rows={a} cols={b} />;
+    }
+
+    if (visualLevel === 3) {
+      // Box 3: faded/partial array
+      return (
+        <div style={{ opacity: 0.35, filter: "blur(0.5px)" }}>
+          <InteractiveArray
+            rows={a}
+            cols={b}
+            speechRate={state.settings.speechRate}
+          />
+        </div>
+      );
+    }
+
+    // Default: full interactive array (Box 1-2 or Rehearsal)
+    return (
+      <InteractiveArray
+        rows={a}
+        cols={b}
+        speechRate={state.settings.speechRate}
+      />
+    );
+  };
+
+  // Show timer for Take/Director's Cut if enabled and Box 3+
+  const showTimer =
+    state.settings.timerEnabled &&
+    (practiceMode === "take" || practiceMode === "directors-cut") &&
+    (fact?.box ?? 1) >= 3 &&
+    screenMode === "normal" &&
+    !isProcessing;
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden">
@@ -173,6 +279,9 @@ export function QuestionScreen() {
           {boxName}
         </span>
       </header>
+
+      {/* Timer bar */}
+      {showTimer && <TimerBar durationSec={15} />}
 
       {/* ── Question (always visible) ── */}
       <div className="relative z-10 text-center px-4 pt-2 sm:pt-4 pb-1 sm:pb-2">
@@ -243,20 +352,7 @@ export function QuestionScreen() {
         <div className="relative z-10 flex-1 flex flex-col md:flex-row md:items-start md:justify-center md:gap-12 lg:gap-20 min-h-0 px-4 sm:px-8">
           {/* Array */}
           <div className="flex-1 flex items-center justify-center min-h-0 overflow-y-auto md:flex-1 md:max-w-[520px]">
-            {isBuildMode && !buildComplete ? (
-              <BuildItArray
-                rows={a}
-                cols={b}
-                speechRate={state.settings.speechRate}
-                onComplete={handleBuildComplete}
-              />
-            ) : (
-              <InteractiveArray
-                rows={a}
-                cols={b}
-                speechRate={state.settings.speechRate}
-              />
-            )}
+            {renderArray()}
           </div>
 
           {/* Keypad + Help button */}

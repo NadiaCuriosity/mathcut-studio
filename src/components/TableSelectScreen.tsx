@@ -6,9 +6,10 @@ import { TABLE_INFO } from "../tables";
 interface TableSelectScreenProps {
   onStart: (table: number) => void;
   onBack?: () => void;
+  backLabel?: string;
 }
 
-export function TableSelectScreen({ onStart, onBack }: TableSelectScreenProps) {
+export function TableSelectScreen({ onStart, onBack, backLabel = "Studio Lot" }: TableSelectScreenProps) {
   const { state } = useProgress();
 
   return (
@@ -37,7 +38,7 @@ export function TableSelectScreen({ onStart, onBack }: TableSelectScreenProps) {
               padding: 0,
             }}
           >
-            ← Studio Lot
+            ← {backLabel}
           </button>
         )}
         <h1

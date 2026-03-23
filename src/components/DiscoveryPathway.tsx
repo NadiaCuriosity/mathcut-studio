@@ -451,6 +451,22 @@ export function DiscoveryPathway({
         {/* Keypad (levels 1-4 only) */}
         {showKeypad && (
           <div className="pt-2 pb-4 md:pt-8 md:pb-0 md:flex-none md:w-[340px]">
+            {/* Answer display */}
+            <div
+              className="text-center mb-3 h-10 flex items-center justify-center"
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "clamp(28px, 6vw, 36px)",
+                fontWeight: 700,
+                color: answer
+                  ? "var(--colour-text-primary)"
+                  : "var(--colour-text-secondary)",
+              }}
+            >
+              {answer || (
+                <span style={{ opacity: 0.25 }}>?</span>
+              )}
+            </div>
             <Keypad
               value={answer}
               onChange={setAnswer}
