@@ -112,8 +112,8 @@ export const AWARDS: AwardDef[] = [
   },
   {
     id: "triple-feature",
-    name: "Triple Tongue Flick",
-    emoji: "👅",
+    name: "Hat Trick Lizard",
+    emoji: "🎩",
     description: "Complete 3 sessions in one day",
     check: (s) => {
       const today = new Date().toISOString().split("T")[0];
