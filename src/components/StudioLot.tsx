@@ -182,9 +182,9 @@ export function StudioLot() {
 
           {/* Gate */}
           <rect
-            x="150"
+            x="120"
             y="252"
-            width="100"
+            width="160"
             height="22"
             rx="3"
             fill="#1a1a36"
@@ -200,11 +200,11 @@ export function StudioLot() {
               fontFamily: "Bebas Neue, Impact, sans-serif",
               fontSize: "7px",
               fill: "#e6b422",
-              letterSpacing: "0.12em",
+              letterSpacing: "0.08em",
               opacity: 0.8,
             }}
           >
-            MATHCUT STUDIO
+            TIMES TABLES THE MOVIE
           </text>
 
           {/* Lizard Linc mascot — sitting on the gate */}
