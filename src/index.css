@@ -121,7 +121,7 @@ body {
 
 @media (min-width: 768px) {
   html {
-    zoom: 1.4;
+    zoom: 1.26;
   }
   body {
     overflow: auto;
@@ -136,7 +136,7 @@ body {
 
 @media (min-width: 1400px) {
   html {
-    zoom: 1.6;
+    zoom: 1.44;
   }
 }
 

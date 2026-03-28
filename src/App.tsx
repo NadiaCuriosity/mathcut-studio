@@ -7,6 +7,7 @@ import { MyMovies } from "./components/MyMovies";
 import { MovieDetail } from "./components/MovieDetail";
 import { AwardsScreen } from "./components/AwardsScreen";
 import { PracticeFlow } from "./components/PracticeFlow";
+import { CrawlingReptiles } from "./components/CrawlingReptiles";
 
 function Layout() {
   return (
@@ -24,6 +25,7 @@ function App() {
     <ProgressProvider>
       <SessionProvider>
         <BrowserRouter>
+          <CrawlingReptiles />
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<StudioLot />} />
