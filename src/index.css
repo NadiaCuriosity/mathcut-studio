@@ -117,6 +117,29 @@ body {
   background: var(--gradient-curtain-vignette);
 }
 
+/* ── Desktop scaling — mobile-first app needs bigger text on large screens ── */
+
+@media (min-width: 768px) {
+  html {
+    zoom: 1.4;
+  }
+  body {
+    overflow: auto;
+    height: auto;
+    min-height: 100dvh;
+  }
+  #root {
+    height: auto;
+    min-height: 100dvh;
+  }
+}
+
+@media (min-width: 1400px) {
+  html {
+    zoom: 1.6;
+  }
+}
+
 /* ── Reduced motion ── */
 
 @media (prefers-reduced-motion: reduce) {

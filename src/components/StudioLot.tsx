@@ -207,55 +207,7 @@ export function StudioLot() {
             TIMES TABLES THE MOVIE
           </text>
 
-          {/* Lizard Linc mascot — sitting on the gate */}
-          <g>
-            <text
-              x="258"
-              y="252"
-              style={{ fontSize: "16px" }}
-            >
-              {state.studioLevel >= 7
-                ? "🐉"
-                : state.studioLevel >= 3
-                  ? "🦎"
-                  : "🦎"}
-            </text>
-            {/* Speech bubble for the lizard */}
-            {state.studioLevel > 0 && (
-              <>
-                <rect
-                  x="268"
-                  y="237"
-                  width={state.studioLevel >= 5 ? 38 : 28}
-                  height="13"
-                  rx="3"
-                  fill="#232342"
-                  stroke="#e6b422"
-                  strokeWidth="0.5"
-                  opacity="0.8"
-                />
-                <text
-                  x={state.studioLevel >= 5 ? 287 : 282}
-                  y="247"
-                  textAnchor="middle"
-                  style={{
-                    fontSize: "6px",
-                    fill: "#e6b422",
-                    fontFamily: "Bebas Neue, Impact, sans-serif",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  {state.studioLevel >= 8
-                    ? "LEGEND!"
-                    : state.studioLevel >= 5
-                      ? "AMAZING!"
-                      : state.studioLevel >= 3
-                        ? "NICE!"
-                        : "HI!"}
-                </text>
-              </>
-            )}
-          </g>
+          {/* Lizard removed from SVG — now rendered as large element outside */}
 
           {/* Buildings */}
           {BUILDINGS.map((b) => {
@@ -396,6 +348,48 @@ export function StudioLot() {
             );
           })}
         </svg>
+
+        {/* Lizard Linc mascot — large, outside SVG */}
+        <div
+          className="absolute"
+          style={{
+            bottom: "2%",
+            right: "8%",
+            zIndex: 15,
+            pointerEvents: "none",
+          }}
+        >
+          {state.studioLevel > 0 && (
+            <div
+              className="absolute -top-6 md:-top-7 left-1/2 -translate-x-1/2 px-2 md:px-3 py-0.5 md:py-1 rounded-lg"
+              style={{
+                background: "var(--colour-bg-elevated)",
+                border: "1.5px solid rgba(230, 180, 34, 0.4)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span
+                className="text-[10px] md:text-[16px]"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  color: "var(--colour-accent-gold)",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                {state.studioLevel >= 8
+                  ? "LEGEND!"
+                  : state.studioLevel >= 5
+                    ? "AMAZING!"
+                    : state.studioLevel >= 3
+                      ? "NICE!"
+                      : "HI!"}
+              </span>
+            </div>
+          )}
+          <span className="text-[40px] md:text-[120px]" style={{ lineHeight: 1 }}>
+            {state.studioLevel >= 7 ? "🐉" : "🦎"}
+          </span>
+        </div>
 
         {/* Building info tooltip */}
         <AnimatePresence>
