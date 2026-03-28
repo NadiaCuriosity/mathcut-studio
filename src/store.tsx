@@ -55,6 +55,7 @@ function createInitialProgress(): UserProgress {
     },
     tablesIntroduced: [1, 10],
     actionSceneBest: 0,
+    trickyFacts: [],
   };
 }
 
@@ -78,6 +79,9 @@ function loadProgress(): UserProgress {
       }
       if (data.actionSceneBest === undefined) {
         data.actionSceneBest = 0;
+      }
+      if (!data.trickyFacts) {
+        data.trickyFacts = [];
       }
       return data;
     }
@@ -128,7 +132,8 @@ type Action =
   | { type: "SET_ACTION_SCENE_BEST"; score: number }
   | { type: "UNLOCK_AWARD"; id: string }
   | { type: "UNLOCK_THEME"; id: string }
-  | { type: "SET_THEME"; id: string };
+  | { type: "SET_THEME"; id: string }
+  | { type: "TOGGLE_TRICKY_FACT"; a: number; b: number };
 
 function findFact(facts: FactRecord[], a: number, b: number) {
   return facts.findIndex((f) => f.a === a && f.b === b);
@@ -221,6 +226,19 @@ function reducer(state: UserProgress, action: Action): UserProgress {
       return {
         ...state,
         settings: { ...state.settings, preferredTheme: action.id },
+      };
+    }
+    case "TOGGLE_TRICKY_FACT": {
+      const na = Math.min(action.a, action.b);
+      const nb = Math.max(action.a, action.b);
+      const exists = state.trickyFacts.some(
+        (t) => t.a === na && t.b === nb
+      );
+      return {
+        ...state,
+        trickyFacts: exists
+          ? state.trickyFacts.filter((t) => !(t.a === na && t.b === nb))
+          : [...state.trickyFacts, { a: na, b: nb }],
       };
     }
     default:

@@ -24,6 +24,7 @@ export function PracticeFlow() {
     startSession,
     startActionScene,
     startDirectorsCut,
+    startReshoots,
     resetSession,
   } = useSession();
   const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(null);
@@ -45,12 +46,16 @@ export function PracticeFlow() {
         // Director's Cut: start immediately (mixed tables)
         startDirectorsCut(state.facts, 12);
         setSelectedMode(mode);
+      } else if (mode === "reshoots") {
+        // Reshoots: start immediately with flagged tricky facts
+        startReshoots(state.facts, state.trickyFacts);
+        setSelectedMode(mode);
       } else {
         // Rehearsal / Take: need table selection next
         setSelectedMode(mode);
       }
     },
-    [state.facts, startActionScene, startDirectorsCut]
+    [state.facts, state.trickyFacts, startActionScene, startDirectorsCut, startReshoots]
   );
 
   // ── Table selection (for Rehearsal/Take) ──

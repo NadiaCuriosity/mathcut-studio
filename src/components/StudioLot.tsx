@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useProgress, getEffectiveStreak } from "../store";
+import { useSession } from "../session";
 import { getTableProgress } from "../leitner";
 import { getTableInfo } from "../tables";
+import { HelpMePicker } from "./HelpMePicker";
 import type { FactRecord } from "../types";
 
 type BuildingStatus = "not-started" | "in-progress" | "mastered";
@@ -48,7 +51,10 @@ const STARS = [
 
 export function StudioLot() {
   const { state } = useProgress();
+  const { startReshoots } = useSession();
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<number | null>(null);
+  const [showHelpMe, setShowHelpMe] = useState(false);
   const effectiveStreak = getEffectiveStreak(state.streak);
   const wasStreakBroken =
     state.streak.currentStreak > 0 &&
@@ -463,6 +469,39 @@ export function StudioLot() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Help Me button */}
+      <div className="relative z-10 text-center pb-2 px-5 shrink-0">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowHelpMe(true)}
+          className="px-6 py-2.5 rounded-xl cursor-pointer"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(16px, 4vw, 20px)",
+            letterSpacing: "0.06em",
+            color: "white",
+            background: "var(--colour-cta)",
+            border: "none",
+            boxShadow: "0 4px 16px rgba(255, 107, 107, 0.3)",
+          }}
+        >
+          HELP ME! 🆘
+        </motion.button>
+      </div>
+
+      {/* Help Me picker overlay */}
+      {showHelpMe && (
+        <HelpMePicker
+          onGo={(a, b) => {
+            setShowHelpMe(false);
+            startReshoots(state.facts, [{ a, b }]);
+            navigate("/practice");
+          }}
+          onClose={() => setShowHelpMe(false)}
+        />
+      )}
 
       {/* Level indicator */}
       <div className="relative z-10 text-center pb-2 px-5 shrink-0">

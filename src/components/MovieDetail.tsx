@@ -12,10 +12,16 @@ const BOX_LABELS: Record<number, { label: string; color: string }> = {
   5: { label: "Mastered", color: "#34d399" },
 };
 
+function isTricky(trickyFacts: { a: number; b: number }[], a: number, b: number) {
+  const na = Math.min(a, b);
+  const nb = Math.max(a, b);
+  return trickyFacts.some((t) => t.a === na && t.b === nb);
+}
+
 export function MovieDetail() {
   const { table } = useParams();
   const navigate = useNavigate();
-  const { state } = useProgress();
+  const { state, dispatch } = useProgress();
   const tableNum = parseInt(table!, 10);
   const info = getTableInfo(tableNum);
   const progress = getTableProgress(state.facts, tableNum);
@@ -137,8 +143,12 @@ export function MovieDetail() {
                 className="p-3 rounded-lg"
                 style={{
                   background: "var(--colour-bg-elevated)",
-                  border: `1.5px solid ${box.color}30`,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                  border: isTricky(state.trickyFacts, fact.a, fact.b)
+                    ? "1.5px solid var(--colour-cta)"
+                    : `1.5px solid ${box.color}30`,
+                  boxShadow: isTricky(state.trickyFacts, fact.a, fact.b)
+                    ? "0 2px 12px rgba(255, 107, 107, 0.2)"
+                    : "0 2px 8px rgba(0,0,0,0.2)",
                 }}
               >
                 <div
@@ -163,15 +173,35 @@ export function MovieDetail() {
                   >
                     {box.label}
                   </span>
-                  <span
-                    className="text-[10px]"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      color: "var(--colour-text-secondary)",
-                    }}
-                  >
-                    {fact.totalCorrect}/{fact.totalAttempts}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="text-[10px]"
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        color: "var(--colour-text-secondary)",
+                      }}
+                    >
+                      {fact.totalCorrect}/{fact.totalAttempts}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch({ type: "TOGGLE_TRICKY_FACT", a: fact.a, b: fact.b });
+                      }}
+                      className="cursor-pointer"
+                      title={isTricky(state.trickyFacts, fact.a, fact.b) ? "Remove from Reshoots" : "Flag for Reshoots"}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: "2px",
+                        fontSize: "14px",
+                        opacity: isTricky(state.trickyFacts, fact.a, fact.b) ? 1 : 0.3,
+                        filter: isTricky(state.trickyFacts, fact.a, fact.b) ? "none" : "grayscale(1)",
+                      }}
+                    >
+                      🔁
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             );

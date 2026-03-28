@@ -126,7 +126,7 @@ export function QuestionScreen() {
       setFeedbackText("");
       setTimeout(() => {
         setScreenMode("discovery");
-        setDiscoveryStartLevel(undefined);
+        setDiscoveryStartLevel(practiceMode === "reshoots" ? 1 : undefined);
         setAnswer("");
         setIsProcessing(false);
       }, 1200);

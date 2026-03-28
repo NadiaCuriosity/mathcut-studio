@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import type { SessionResult } from "../session";
 import type { PracticeMode } from "../session";
+import { useProgress } from "../store";
 import { calcActionSceneTotal } from "./ActionSceneScreen";
 import { speak } from "../tts";
 
@@ -18,6 +19,7 @@ const MODE_TITLES: Record<PracticeMode, string> = {
   take: "THAT'S A WRAP!",
   action: "BOX OFFICE REPORT",
   "directors-cut": "DIRECTOR'S CUT WRAP!",
+  reshoots: "RESHOOTS WRAP!",
 };
 
 const MODE_EMOJIS: Record<PracticeMode, string> = {
@@ -25,6 +27,7 @@ const MODE_EMOJIS: Record<PracticeMode, string> = {
   take: "🎥",
   action: "💥",
   "directors-cut": "🎞️",
+  reshoots: "🔁",
 };
 
 export function SessionSummary({
@@ -33,6 +36,8 @@ export function SessionSummary({
   personalBest,
   onBackToStudio,
 }: SessionSummaryProps) {
+  const { state, dispatch } = useProgress();
+  const [reshootsAdded, setReshootsAdded] = useState(false);
   const nailed = results.filter(
     (r) => r.correct && !r.discoveryAssisted
   ).length;
@@ -344,6 +349,57 @@ export function SessionSummary({
           );
         })}
       </motion.div>
+
+      {/* Add to Reshoots — offer after single-fact help */}
+      {practiceMode === "reshoots" && results.length > 0 && !reshootsAdded && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mb-4 relative z-10"
+        >
+          <button
+            onClick={() => {
+              for (const r of results) {
+                const na = Math.min(r.a, r.b);
+                const nb = Math.max(r.a, r.b);
+                const already = state.trickyFacts.some(
+                  (t) => t.a === na && t.b === nb
+                );
+                if (!already) {
+                  dispatch({ type: "TOGGLE_TRICKY_FACT", a: r.a, b: r.b });
+                }
+              }
+              setReshootsAdded(true);
+            }}
+            className="px-5 py-2.5 rounded-xl cursor-pointer"
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "16px",
+              letterSpacing: "0.05em",
+              background: "var(--colour-bg-elevated)",
+              color: "var(--colour-cta)",
+              border: "1.5px solid var(--colour-cta)",
+            }}
+          >
+            ADD TO RESHOOTS 🔁
+          </button>
+        </motion.div>
+      )}
+      {reshootsAdded && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-4 relative z-10 m-0"
+          style={{
+            fontFamily: "var(--font-body)",
+            fontSize: "14px",
+            color: "var(--colour-success)",
+          }}
+        >
+          Added to Reshoots for extra practice!
+        </motion.p>
+      )}
 
       {/* Back button */}
       <motion.button

@@ -43,6 +43,13 @@ const MODES: {
     subtitle: "Mixed Review",
     description: "All your tables shuffled together",
   },
+  {
+    mode: "reshoots",
+    emoji: "🔁",
+    title: "Reshoots",
+    subtitle: "Tricky Facts",
+    description: "Practice the facts you've flagged",
+  },
 ];
 
 const ACTION_SCENE_MIN = 10;
@@ -51,6 +58,7 @@ export function ModeSelectScreen({ onSelect, onBack }: ModeSelectScreenProps) {
   const { state } = useProgress();
   const actionCount = countActionSceneFacts(state.facts);
   const actionLocked = actionCount < ACTION_SCENE_MIN;
+  const reshootsLocked = (state.trickyFacts?.length ?? 0) === 0;
 
   // Director's Cut needs at least some practiced facts from 2+ tables
   const practicedTables = new Set(
@@ -120,7 +128,8 @@ export function ModeSelectScreen({ onSelect, onBack }: ModeSelectScreenProps) {
           {MODES.map((m, i) => {
             const isLocked =
               (m.mode === "action" && actionLocked) ||
-              (m.mode === "directors-cut" && directorsCutLocked);
+              (m.mode === "directors-cut" && directorsCutLocked) ||
+              (m.mode === "reshoots" && reshootsLocked);
 
             return (
               <motion.button
@@ -184,7 +193,11 @@ export function ModeSelectScreen({ onSelect, onBack }: ModeSelectScreenProps) {
                       ? `Need ${ACTION_SCENE_MIN - actionCount} more mastered facts`
                       : isLocked && m.mode === "directors-cut"
                         ? "Practice at least 2 tables first"
-                        : m.description}
+                        : isLocked && m.mode === "reshoots"
+                          ? "Flag tricky facts in Movies first"
+                          : m.mode === "reshoots" && !isLocked
+                            ? `${state.trickyFacts.length} fact${state.trickyFacts.length !== 1 ? "s" : ""} flagged`
+                            : m.description}
                   </p>
                 </div>
                 {isLocked && (

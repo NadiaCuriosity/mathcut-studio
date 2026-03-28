@@ -29,7 +29,7 @@ export interface QuestionRecord {
 export interface SessionRecord {
   id: string;
   date: string;
-  mode: 'rehearsal' | 'take' | 'action' | 'directors-cut';
+  mode: 'rehearsal' | 'take' | 'action' | 'directors-cut' | 'reshoots';
   factsAttempted: number;
   factsCorrect: number;
   duration: number;
@@ -62,4 +62,5 @@ export interface UserProgress {
   streak: StreakData;
   tablesIntroduced: number[];
   actionSceneBest: number;
+  trickyFacts: { a: number; b: number }[];
 }

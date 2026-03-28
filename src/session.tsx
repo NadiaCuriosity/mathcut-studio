@@ -12,7 +12,7 @@ import {
   selectDirectorsCutFacts,
 } from "./leitner";
 
-export type PracticeMode = "rehearsal" | "take" | "action" | "directors-cut";
+export type PracticeMode = "rehearsal" | "take" | "action" | "directors-cut" | "reshoots";
 export type PresentationMode = "build-it" | "interactive";
 
 export interface SessionQuestion {
@@ -41,6 +41,9 @@ export interface SessionData {
 }
 
 function getMode(fact: FactRecord, practiceMode: PracticeMode): PresentationMode {
+  // Reshoots: always build-it for maximum scaffolding
+  if (practiceMode === "reshoots") return "build-it";
+
   // Action Scene: always interactive (no build-it for mastered facts)
   if (practiceMode === "action") return "interactive";
 
@@ -67,6 +70,7 @@ interface SessionContextValue {
   ) => void;
   startActionScene: (facts: FactRecord[], count?: number) => void;
   startDirectorsCut: (facts: FactRecord[], count?: number) => void;
+  startReshoots: (facts: FactRecord[], pairs: { a: number; b: number }[]) => void;
   recordAnswer: (
     correct: boolean,
     responseTime: number,
@@ -141,6 +145,40 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession({
         table: 0,
         practiceMode: "directors-cut",
+        questions,
+        currentIndex: 0,
+        results: [],
+        startTime: Date.now(),
+        missCount: {},
+      });
+    },
+    []
+  );
+
+  const startReshoots = useCallback(
+    (facts: FactRecord[], pairs: { a: number; b: number }[]) => {
+      // Find matching FactRecords for each tricky pair (check both orderings)
+      const matched: FactRecord[] = [];
+      for (const p of pairs) {
+        const f = facts.find(
+          (x) =>
+            (x.a === p.a && x.b === p.b) || (x.a === p.b && x.b === p.a)
+        );
+        if (f) matched.push(f);
+      }
+      // Shuffle
+      for (let i = matched.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [matched[i], matched[j]] = [matched[j], matched[i]];
+      }
+      const questions: SessionQuestion[] = matched.map((f) => ({
+        a: f.a,
+        b: f.b,
+        mode: "build-it" as PresentationMode,
+      }));
+      setSession({
+        table: 0,
+        practiceMode: "reshoots",
         questions,
         currentIndex: 0,
         results: [],
@@ -241,6 +279,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         startSession,
         startActionScene,
         startDirectorsCut,
+        startReshoots,
         recordAnswer,
         nextQuestion,
         wrapSession,
