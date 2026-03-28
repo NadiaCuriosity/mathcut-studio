@@ -1,19 +1,19 @@
 import { motion } from "framer-motion";
 
 const REPTILES = [
-  { emoji: "🦎", delay: 0, y: "5%", rotate: 75, size: 28 },
-  { emoji: "🐍", delay: 2, y: "20%", rotate: 90, size: 24 },
-  { emoji: "🦎", delay: 4.5, y: "38%", rotate: 60, size: 22 },
-  { emoji: "🐍", delay: 1.5, y: "55%", rotate: 85, size: 26 },
-  { emoji: "🦎", delay: 3, y: "72%", rotate: 70, size: 20 },
-  { emoji: "🐍", delay: 5, y: "88%", rotate: 80, size: 24 },
+  { emoji: "🦎", delay: 0, y: "2%", rotate: 75, size: 44 },
+  { emoji: "🐍", delay: 2, y: "20%", rotate: 90, size: 40 },
+  { emoji: "🦎", delay: 4.5, y: "38%", rotate: 60, size: 38 },
+  { emoji: "🐍", delay: 1.5, y: "56%", rotate: 85, size: 42 },
+  { emoji: "🦎", delay: 3, y: "72%", rotate: 70, size: 36 },
+  { emoji: "🐍", delay: 5, y: "88%", rotate: 80, size: 40 },
 ];
 
 export function CrawlingReptiles() {
   return (
     <div
       className="fixed left-0 top-0 h-full pointer-events-none"
-      style={{ width: "40px", zIndex: 50 }}
+      style={{ width: "64px", zIndex: 50 }}
     >
       {REPTILES.map((r, i) => (
         <motion.span
